@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/categoryList"
+        android:title="Category List"
+        android:icon="@drawable/categories"/>
+    <item
+        android:id="@+id/images"
+        android:title="Images"
+        android:icon="@drawable/image_icon"/>
+    <item
+        android:id="@+id/articles"
+        android:title="Article"
+        android:icon="@drawable/news_icon"/>
+
+</menu>
