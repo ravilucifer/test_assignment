@@ -1,66 +1,116 @@
 package com.example.test_assignment.Fragment;
 
+import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
+import androidx.core.widget.NestedScrollView;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.example.test_assignment.Adapter.CategoryListAdapter;
+import com.example.test_assignment.Model.CategoryListModel;
 import com.example.test_assignment.R;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link CategoryListFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
+
 public class CategoryListFragment extends Fragment {
-
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    public CategoryListFragment() {
-        // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment CategoryListFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static CategoryListFragment newInstance(String param1, String param2) {
-        CategoryListFragment fragment = new CategoryListFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
-    }
-
+RecyclerView category_recycler;
+private static final String url = "https://en.wikipedia.org/w/api.php?action=query&list=allcategories&acprefix%20=List%20of&formatversion=2&format=json&accontinue=";
+    ArrayList<CategoryListModel> categoryArrayList = new ArrayList<>();
+    CategoryListAdapter customAdapter;
+    NestedScrollView paginationScroll;
+    String continueParam = "";
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_category_list, container, false);
+        View v = inflater.inflate(R.layout.fragment_category_list, container, false);
+        initUI(v);
+        return v;
     }
+
+    private void initUI(View v) {
+        category_recycler = v.findViewById(R.id.category_recycler);
+        paginationScroll = v.findViewById(R.id.paginationScroll);
+        bindData();
+    }
+
+    private void bindData() {
+        getCategoryList(continueParam);
+
+        paginationScroll.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
+            @Override
+            public void onScrollChange(@NonNull NestedScrollView v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                if (scrollY == v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight()) {
+                    Log.e("TAG45", "onScrollChange: "+continueParam );
+                    getCategoryList(continueParam);
+                }
+            }
+        });
+    }
+
+    private void getCategoryList(String continue_Param) {
+        try {
+            final ProgressDialog loading = ProgressDialog.show(getContext(),"","Please Wait...",false,false);
+            @SuppressLint("NotifyDataSetChanged") StringRequest request = new StringRequest(Request.Method.GET, url+continue_Param, response -> {
+                try {
+                    JSONObject jsonObject = new JSONObject(response);
+                    if (jsonObject.getString("batchcomplete").equals("true")) {
+                        continueParam = jsonObject.getJSONObject("continue").getString("accontinue");
+                        JSONArray categoryListArray = jsonObject.getJSONObject("query").getJSONArray("allcategories");
+                        if (categoryListArray.length() > 0) {
+                            categoryArrayList.clear();
+                            for (int i = 0; i < categoryListArray.length(); i++) {
+                                JSONObject objectCategoryList = categoryListArray.getJSONObject(i);
+                                categoryArrayList.add(new CategoryListModel(
+                                        objectCategoryList.getString("category")));
+                            }
+                            LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext());
+                            category_recycler.setLayoutManager(linearLayoutManager);
+                            customAdapter = new CategoryListAdapter(getContext(), categoryArrayList);
+                            category_recycler.setAdapter(customAdapter);
+                            customAdapter.notifyDataSetChanged();
+                        }
+                    } else {
+                        Toast.makeText(getContext(), jsonObject.getString("batchcomplete"), Toast.LENGTH_SHORT).show();
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                loading.dismiss();
+            }, error -> error.printStackTrace()) {
+                @Override
+                protected Map<String, String> getParams() {
+                    HashMap<String, String> param = new HashMap<>();
+                    return param;
+                }
+            };
+            RequestQueue requestQueue = Volley.newRequestQueue(requireContext());
+            requestQueue.add(request);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }

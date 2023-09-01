@@ -16,7 +16,7 @@
             android:layout_height="300dp"
             android:id="@+id/imageView_feature"
             android:scaleType="centerCrop"
-            android:src="@drawable/_The_School_of_Athens__by_Raffaello_Sanzio_da_Urbino"
+            android:src="@drawable/image"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
